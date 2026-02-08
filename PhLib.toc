@@ -1,0 +1,13 @@
+## Interface: 30300
+## Title: PhLib
+## Notes: Tool to save player professions (saves data in a lua table in SavedVariables/PhLib.lua)
+## Author: Arll4
+## Version: 0.6.0
+## SavedVariables: PhLib
+
+PhLib.lua
+PhLibProfessions.lua
+PhLibUtils.lua
+PhLibData.lua
+PhLibApi.lua
+PhLibGui.lua
