@@ -32,8 +32,15 @@ async def on_ready():
         print("DISCORD_CHANNEL_ID not set. Data will not be sent to Discord.")
     print(f"Logged in as {bot.user}")
     try:
+        # Sync global commands (only char_prof and char_item; overwrites old ones)
         synced = await bot.tree.sync()
-        print(f"Synced {len(synced)} command(s).")
+        print(f"Synced {len(synced)} command(s): {[c.name for c in synced]}")
+        # Also sync per guild so any old guild-specific commands are replaced
+        for guild in bot.guilds:
+            try:
+                await bot.tree.sync(guild=guild)
+            except Exception:
+                pass
     except Exception as e:
         print(f"Failed to sync commands: {e}")
 
@@ -51,8 +58,18 @@ def schedule_send(content: str):
 # ---- Slash commands (PhLib data from SQLite) ----
 
 
+async def character_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    """Autocomplete for /char_prof: show character names from DB."""
+    db.init_db()
+    names = db.search_character_names(current or "", limit=25)
+    if not names:
+        return []
+    return [app_commands.Choice(name=n, value=n) for n in names]
+
+
 @bot.tree.command(name="char_prof", description="Show what professions a character has")
-@app_commands.describe(character="Character name (optional: list all characters if omitted)")
+@app_commands.describe(character="Character name (pick from list or leave empty to list all)")
+@app_commands.autocomplete(character=character_autocomplete)
 async def char_prof(interaction: discord.Interaction, character: str | None = None):
     await interaction.response.defer(ephemeral=False)
     db.init_db()

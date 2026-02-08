@@ -132,6 +132,25 @@ def get_all_characters() -> list[tuple[str, str]]:
         conn.close()
 
 
+def search_character_names(prefix: str = "", limit: int = 25) -> list[str]:
+    """Return character names (distinct) for autocomplete; optional prefix filter."""
+    conn = _get_conn()
+    try:
+        if prefix and prefix.strip():
+            cur = conn.execute(
+                "SELECT DISTINCT c.name FROM characters c WHERE LOWER(c.name) LIKE LOWER(?) || '%' ORDER BY c.name LIMIT ?",
+                (prefix.strip(), limit),
+            )
+        else:
+            cur = conn.execute(
+                "SELECT DISTINCT c.name FROM characters c ORDER BY c.name LIMIT ?",
+                (limit,),
+            )
+        return [row[0] for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+
 def get_character_professions(realm: str, character: str) -> list[dict]:
     """Return list of { name, rank, max_rank } for the given realm+character."""
     conn = _get_conn()

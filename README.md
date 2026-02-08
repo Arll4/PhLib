@@ -53,6 +53,56 @@
 
 ---
 
+---
+
+## Client & Server (optional)
+
+PhLib can send saved profession data from your WoW SavedVariables to a small Python server, which stores it in SQLite and exposes Discord slash commands (`/char_prof`, `/char_item`).
+
+### Client – `Client/.env`
+
+Used by the Python client in `Client/` that watches your PhLib Lua file and POSTs it to the server.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `WOW_SAVEDVARS_PATH` | **Yes** | Full path to the PhLib SavedVariables Lua file. WoW writes it when you save in-game (e.g. `C:\...\WTF\Account\ACCOUNTNAME\SavedVariables\PhLib.lua`). Use quotes if the path has spaces. |
+| `SERVER_URL` | No | Base URL of the PhLib server. Default: `http://localhost:8000`. |
+
+**Example `Client/.env`:**
+
+```env
+WOW_SAVEDVARS_PATH="C:\Games\World of Warcraft 3.3.5a\WTF\Account\MYACCOUNT\SavedVariables\PhLib.lua"
+SERVER_URL=http://localhost:8000
+```
+
+### Server – `Server/.env`
+
+Used by the Python server (FastAPI + Discord bot) that receives data and serves Discord commands.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DISCORD_TOKEN` | **Yes** (for Discord) | Your Discord bot token from the [Discord Developer Portal](https://discord.com/developers/applications). Without it, only the API runs (no slash commands). |
+| `DISCORD_CHANNEL_ID` | No | Discord channel ID where the bot can post (numeric). If unset, slash commands still work; optional notifications won’t post. |
+| `API_HOST` | No | Host to bind the API on. Default: `0.0.0.0`. |
+| `API_PORT` | No | Port for the API. Default: `8000`. |
+
+**Example `Server/.env`:**
+
+```env
+DISCORD_TOKEN=your_bot_token_here
+DISCORD_CHANNEL_ID=1234567890123456789
+API_HOST=0.0.0.0
+API_PORT=8000
+```
+
+**Quick setup:**
+
+1. **Client:** Create `Client/.env` with `WOW_SAVEDVARS_PATH` (and optional `SERVER_URL`). Run `python app.py` in `Client/` to watch the Lua file and send data when it changes.
+2. **Server:** Create `Server/.env` with at least `DISCORD_TOKEN`. Install deps (`pip install -r requirements.txt` in `Server/`), then run the server (e.g. `python app.py`). Data is stored in `Server/sqlite.db`.
+3. **Discord:** Use `/char_prof` (professions per character) and `/char_item` (which characters have a recipe).
+
+---
+
 ## Version
 
 - **Addon version:** 0.6.0  
