@@ -1,12 +1,14 @@
 """
 Discord bot: displays data (e.g. messages forwarded from the API).
-The API receives data from the client; this module is used to show it in Discord.
+Slash commands: /char_prof, /char_item (from PhLib SQLite data).
 """
 import asyncio
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from config import DISCORD_CHANNEL_ID
+import db
 
 # Set when bot is ready (used by api to send messages)
 bot_loop = None
@@ -29,6 +31,11 @@ async def on_ready():
     else:
         print("DISCORD_CHANNEL_ID not set. Data will not be sent to Discord.")
     print(f"Logged in as {bot.user}")
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} command(s).")
+    except Exception as e:
+        print(f"Failed to sync commands: {e}")
 
 
 def schedule_send(content: str):
@@ -39,3 +46,74 @@ def schedule_send(content: str):
     if not channel or not bot_loop:
         return None
     return asyncio.run_coroutine_threadsafe(channel.send(content=content), bot_loop)
+
+
+# ---- Slash commands (PhLib data from SQLite) ----
+
+
+@bot.tree.command(name="char_prof", description="Show what professions a character has")
+@app_commands.describe(character="Character name (optional: list all characters if omitted)")
+async def char_prof(interaction: discord.Interaction, character: str | None = None):
+    await interaction.response.defer(ephemeral=False)
+    db.init_db()
+    if character:
+        character = character.strip()
+        results = db.get_professions_by_character_name(character)
+        if not results:
+            await interaction.followup.send(f"No character named **{character}** found in the database.", ephemeral=True)
+            return
+        lines = []
+        for realm, char_name, profs in results:
+            if not profs:
+                lines.append(f"**{char_name}** ({realm}): *no professions*")
+            else:
+                proflist = ", ".join(f"{p['name']} ({p['rank'] or 0}/{p['max_rank'] or 0})" for p in profs)
+                lines.append(f"**{char_name}** ({realm}): {proflist}")
+        msg = "\n".join(lines)
+        if len(msg) > 1900:
+            msg = msg[:1900] + "\n..."
+        await interaction.followup.send(msg or "No data.")
+    else:
+        chars = db.get_all_characters()
+        if not chars:
+            await interaction.followup.send("No characters in the database. Send saved vars from the client first.", ephemeral=True)
+            return
+        lines = []
+        for realm, char_name in chars:
+            profs = db.get_character_professions(realm, char_name)
+            proflist = ", ".join(p["name"] for p in profs) if profs else "—"
+            lines.append(f"**{char_name}** ({realm}): {proflist}")
+        msg = "\n".join(lines)
+        if len(msg) > 1900:
+            msg = msg[:1900] + "\n..."
+        await interaction.followup.send(msg or "No data.")
+
+
+async def item_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    if len(current) < 3:
+        return [app_commands.Choice(name="Type at least 3 characters to search", value="")]
+    names = db.search_recipe_names(current, limit=25)
+    return [app_commands.Choice(name=n, value=n) for n in names]
+
+
+@bot.tree.command(name="char_item", description="Search for a recipe; shows which characters have it")
+@app_commands.describe(item="Recipe/item name (autocomplete after 3 characters)")
+@app_commands.autocomplete(item=item_autocomplete)
+async def char_item(interaction: discord.Interaction, item: str):
+    await interaction.response.defer(ephemeral=False)
+    item = (item or "").strip()
+    if len(item) < 3:
+        await interaction.followup.send("Please enter at least 3 characters to search for an item.", ephemeral=True)
+        return
+    db.init_db()
+    chars = db.get_characters_with_recipe(item)
+    if not chars:
+        await interaction.followup.send(f"No characters found with recipe **{item}**.", ephemeral=True)
+        return
+    lines = [f"**{item}** — known by:"]
+    for realm, char_name in chars:
+        lines.append(f"• {char_name} ({realm})")
+    msg = "\n".join(lines)
+    if len(msg) > 1900:
+        msg = msg[:1900] + "\n..."
+    await interaction.followup.send(msg)
