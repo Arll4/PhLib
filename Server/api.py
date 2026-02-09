@@ -25,12 +25,13 @@ async def save_data(body: SaveDataIn) -> dict:
     if not body.data or not body.data.strip():
         raise HTTPException(status_code=400, detail="data must be non-empty")
     raw = body.data.strip()
-    if not raw.startswith("{") or "_config" not in raw[:500]:
-        raise HTTPException(status_code=400, detail="Invalid PhLib data")
+    if not raw.startswith("{"):
+        raise HTTPException(status_code=400, detail="Payload must be JSON object")
     try:
         savedvars = json.loads(raw)
-        db.save_savedvars(savedvars)
     except json.JSONDecodeError as err:
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {err}")
-    out = {"ok": True, "length": len(raw)}
-    return out
+    if not isinstance(savedvars, dict):
+        raise HTTPException(status_code=400, detail="Payload must be a JSON object")
+    db.save_savedvars(savedvars)
+    return {"ok": True, "length": len(raw)}
