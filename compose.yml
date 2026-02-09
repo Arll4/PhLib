@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  phlib-server:
+    build:
+      context: ./Server
+      dockerfile: Dockerfile
+    container_name: phlib-server
+    ports:
+      - "8000:8000"
+    environment:
+    # discord token and channel id, .env file in the same directory as the compose.yml file
+      - DISCORD_TOKEN=${DISCORD_TOKEN:-}
+      - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID:-0}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    volumes:
+      # Persist the SQLite database
+      - your_path_to_wow.db:/app/wow.db
+    restart: unless-stopped

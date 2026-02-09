@@ -46,6 +46,8 @@
 4. Click **Add / Save**.  
    PhLib will capture the open profession and all recipes and save them under that owner. A confirmation message will print in chat.
 
+**Important:** For professions to be saved to the `PhLib.lua` file in SavedVariables, you need to **`/reload`** the game after clicking **Add / Save**.
+
 ### Data storage
 
 - Saved data lives in **SavedVariables** as the global table **`PhLib`**.
@@ -98,8 +100,51 @@ API_PORT=8000
 **Quick setup:**
 
 1. **Client:** Create `Client/.env` with `WOW_SAVEDVARS_PATH` (and optional `SERVER_URL`). Run `python app.py` in `Client/` to watch the Lua file and send data when it changes.
-2. **Server:** Create `Server/.env` with at least `DISCORD_TOKEN`. Install deps (`pip install -r requirements.txt` in `Server/`), then run the server (e.g. `python app.py`). Data is stored in `Server/sqlite.db`.
+2. **Server:** Create `Server/.env` with at least `DISCORD_TOKEN`. Install deps (`pip install -r requirements.txt` in `Server/`), then run the server (e.g. `python app.py`). Data is stored in `Server/wow.db`.
 3. **Discord:** Use `/char_prof` (professions per character) and `/char_item` (which characters have a recipe).
+
+### Server with Docker (recommended)
+
+The easiest way to run the server is using Docker Compose.
+
+**Prerequisites:**
+- [Docker](https://www.docker.com/get-started) and [Docker Compose](https://docs.docker.com/compose/install/) installed
+
+**Setup:**
+
+1. **Create `.env` file** in the project root (same directory as `compose.yml`):
+   ```env
+   DISCORD_TOKEN=your_bot_token_here
+   DISCORD_CHANNEL_ID=1234567890123456789
+   ```
+
+2. **Update the volume path** in `compose.yml`:
+   - Open `compose.yml` and replace `your_path_to_wow.db` with the actual path where you want the database stored (e.g., `./Server/wow.db` for a relative path, or an absolute path like `C:/Dev/wow/PhLib/Server/wow.db` on Windows).
+
+3. **Start the server:**
+   ```bash
+   docker-compose up -d
+   ```
+   This will build the Docker image and start the server in the background.
+
+4. **Check server status:**
+   ```bash
+   docker-compose ps
+   ```
+
+5. **View logs:**
+   ```bash
+   docker-compose logs -f
+   ```
+
+6. **Stop the server:**
+   ```bash
+   docker-compose down
+   ```
+
+The server will be available at `http://localhost:8000`. The API documentation is available at `http://localhost:8000/docs`.
+
+**Note:** The SQLite database (`wow.db`) will persist in the location you specified in the volume mount, so your data will be preserved even if you stop and restart the container.
 
 ---
 
