@@ -16,5 +16,4 @@ build/
 
 # Project-specific
 *.json
-*.txt
-sqlite.db
+*.db
