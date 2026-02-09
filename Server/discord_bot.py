@@ -71,13 +71,13 @@ async def character_autocomplete(interaction: discord.Interaction, current: str)
 @app_commands.describe(character="Character name (pick from list or leave empty to list all)")
 @app_commands.autocomplete(character=character_autocomplete)
 async def char_prof(interaction: discord.Interaction, character: str | None = None):
-    await interaction.response.defer(ephemeral=False)
+    await interaction.response.defer(ephemeral=True)
     db.init_db()
     if character:
         character = character.strip()
         results = db.get_professions_by_character_name(character)
         if not results:
-            await interaction.followup.send(f"No character named **{character}** found in the database.", ephemeral=True)
+            await interaction.edit_original_response(content=f"No character named **{character}** found in the database.")
             return
         lines = []
         for realm, char_name, profs in results:
@@ -89,11 +89,11 @@ async def char_prof(interaction: discord.Interaction, character: str | None = No
         msg = "\n".join(lines)
         if len(msg) > 1900:
             msg = msg[:1900] + "\n..."
-        await interaction.followup.send(msg or "No data.")
+        await interaction.edit_original_response(content=msg or "No data.")
     else:
         chars = db.get_all_characters()
         if not chars:
-            await interaction.followup.send("No characters in the database. Send saved vars from the client first.", ephemeral=True)
+            await interaction.edit_original_response(content="No characters in the database. Send saved vars from the client first.")
             return
         lines = []
         for realm, char_name in chars:
@@ -103,7 +103,7 @@ async def char_prof(interaction: discord.Interaction, character: str | None = No
         msg = "\n".join(lines)
         if len(msg) > 1900:
             msg = msg[:1900] + "\n..."
-        await interaction.followup.send(msg or "No data.")
+        await interaction.edit_original_response(content=msg or "No data.")
 
 
 async def item_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
@@ -117,15 +117,15 @@ async def item_autocomplete(interaction: discord.Interaction, current: str) -> l
 @app_commands.describe(item="Recipe/item name (autocomplete after 3 characters)")
 @app_commands.autocomplete(item=item_autocomplete)
 async def char_item(interaction: discord.Interaction, item: str):
-    await interaction.response.defer(ephemeral=False)
+    await interaction.response.defer(ephemeral=True)
     item = (item or "").strip()
     if len(item) < 3:
-        await interaction.followup.send("Please enter at least 3 characters to search for an item.", ephemeral=True)
+        await interaction.edit_original_response(content="Please enter at least 3 characters to search for an item.")
         return
     db.init_db()
     chars = db.get_characters_with_recipe(item)
     if not chars:
-        await interaction.followup.send(f"No characters found with recipe **{item}**.", ephemeral=True)
+        await interaction.edit_original_response(content=f"No characters found with recipe **{item}**.")
         return
     lines = [f"**{item}** — known by:"]
     for realm, char_name in chars:
@@ -133,4 +133,4 @@ async def char_item(interaction: discord.Interaction, item: str):
     msg = "\n".join(lines)
     if len(msg) > 1900:
         msg = msg[:1900] + "\n..."
-    await interaction.followup.send(msg)
+    await interaction.edit_original_response(content=msg)
